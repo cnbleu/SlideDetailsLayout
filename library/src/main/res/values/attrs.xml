@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <attr name="marker_layout" format="reference"/>
+    <attr name="marker_style" format="reference"/>
+
+    <declare-styleable name="SlideDetailsLayout">
+        <attr name="marker_style"/>
+
+    </declare-styleable>
+
+</resources>
