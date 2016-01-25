@@ -4,11 +4,13 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
 import android.content.Context;
+import android.content.res.TypedArray;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.support.v4.view.MotionEventCompat;
 import android.support.v4.view.ViewCompat;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
@@ -17,6 +19,9 @@ import android.widget.AbsListView;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
+
+import static cn.bleu.widget.slidedetails.SlideDebug.DEBUG;
+import static cn.bleu.widget.slidedetails.SlideDebug.TAG;
 
 /**
  * <b>Project:</b> SlideDetailsLayout<br>
@@ -58,6 +63,9 @@ public class SlideDetailsLayout extends ViewGroup {
         }
     }
 
+    private static final float DEFAULT_PERCENT = 0.2f;
+    private static final int DEFAULT_DURATION = 300;
+
     private View mFrontView;
     private View mBehindView;
 
@@ -70,6 +78,8 @@ public class SlideDetailsLayout extends ViewGroup {
     private float mSlideOffset;
     private Status mStatus = Status.CLOSE;
     private boolean isFirstShowBehindView = true;
+    private float mPercent = DEFAULT_PERCENT;
+    private long mDuration = DEFAULT_DURATION;
 
     private OnSlideDetailsListener mOnSlideDetailsListener;
 
@@ -83,6 +93,11 @@ public class SlideDetailsLayout extends ViewGroup {
 
     public SlideDetailsLayout(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
+
+        TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.SlideDetailsLayout, defStyleAttr, 0);
+        mPercent = a.getFloat(R.styleable.SlideDetailsLayout_percent, DEFAULT_PERCENT);
+        mDuration = a.getInt(R.styleable.SlideDetailsLayout_duration, DEFAULT_DURATION);
+        a.recycle();
 
         mTouchSlop = ViewConfiguration.get(getContext()).getScaledTouchSlop();
     }
@@ -105,7 +120,7 @@ public class SlideDetailsLayout extends ViewGroup {
         if (mStatus != Status.OPEN) {
             mStatus = Status.OPEN;
             final float height = -getMeasuredHeight();
-            animatorSwitch(0, height, true, smooth ? 200 : 0);
+            animatorSwitch(0, height, true, smooth ? mDuration : 0);
         }
     }
 
@@ -118,7 +133,7 @@ public class SlideDetailsLayout extends ViewGroup {
         if (mStatus != Status.CLOSE) {
             mStatus = Status.OPEN;
             final float height = -getMeasuredHeight();
-            animatorSwitch(height, 0, true, smooth ? 200 : 0);
+            animatorSwitch(height, 0, true, smooth ? mDuration : 0);
         }
     }
 
@@ -243,6 +258,9 @@ public class SlideDetailsLayout extends ViewGroup {
 
                 if (canChildScrollVertically((int) yDiff)) {
                     shouldIntercept = false;
+                    if (DEBUG) {
+                        Log.d(TAG, "intercept, child can scroll vertically, do not intercept");
+                    }
                 } else {
                     final float xDiffabs = Math.abs(xDiff);
                     final float yDiffabs = Math.abs(yDiff);
@@ -255,6 +273,9 @@ public class SlideDetailsLayout extends ViewGroup {
                         && !(mStatus == Status.CLOSE && yDiff > 0
                              || mStatus == Status.OPEN && yDiff < 0)) {
                         shouldIntercept = true;
+                        if (DEBUG) {
+                            Log.d(TAG, "intercept, intercept events");
+                        }
                     }
                 }
                 break;
@@ -353,6 +374,9 @@ public class SlideDetailsLayout extends ViewGroup {
             }
         }
 
+        if (SlideDebug.DEBUG) {
+            Log.v("slide", "process, offset: " + mSlideOffset);
+        }
         // relayout
         requestLayout();
     }
@@ -362,39 +386,32 @@ public class SlideDetailsLayout extends ViewGroup {
      */
     private void finishTouchEvent() {
         final int pHeight = getMeasuredHeight();
-        final int halfHeight = (int) (pHeight / 2f + 0.5f);
+        final int percent = (int) (pHeight * mPercent);
         final float offset = mSlideOffset;
 
+        if (SlideDebug.DEBUG) {
+            Log.d("slide", "finish, offset: " + offset + ", percent: " + percent);
+        }
+
         boolean changed = false;
-        // pull up to open
-        if (offset < 0) {
-            if (offset <= -halfHeight) {
+
+        if (Status.CLOSE == mStatus) {
+            if (offset <= -percent) {
                 mSlideOffset = -pHeight;
-                if (mStatus != Status.OPEN) {
-                    mStatus = Status.OPEN;
-                    changed = true;
-                }
+                mStatus = Status.OPEN;
+                changed = true;
             } else {
+                // keep panel closed
                 mSlideOffset = 0;
-                if (mStatus != Status.CLOSE) {
-                    mStatus = Status.CLOSE;
-                    changed = true;
-                }
             }
-            // pull down to close
-        } else {
-            if (offset >= halfHeight) {
-                mSlideOffset = -pHeight;
-                if (mStatus != Status.OPEN) {
-                    mStatus = Status.OPEN;
-                    changed = true;
-                }
-            } else {
+        } else if (Status.OPEN == mStatus) {
+            if ((offset + pHeight) >= percent) {
                 mSlideOffset = 0;
-                if (mStatus != Status.CLOSE) {
-                    mStatus = Status.CLOSE;
-                    changed = true;
-                }
+                mStatus = Status.CLOSE;
+                changed = true;
+            } else {
+                // keep panel opened
+                mSlideOffset = -pHeight;
             }
         }
 
@@ -402,7 +419,7 @@ public class SlideDetailsLayout extends ViewGroup {
     }
 
     private void animatorSwitch(final float start, final float end) {
-        animatorSwitch(start, end, true, 200);
+        animatorSwitch(start, end, true, mDuration);
     }
 
     private void animatorSwitch(final float start, final float end, final long duration) {
@@ -410,7 +427,7 @@ public class SlideDetailsLayout extends ViewGroup {
     }
 
     private void animatorSwitch(final float start, final float end, final boolean changed) {
-        animatorSwitch(start, end, changed, 200);
+        animatorSwitch(start, end, changed, mDuration);
     }
 
     private void animatorSwitch(final float start,
@@ -575,7 +592,5 @@ public class SlideDetailsLayout extends ViewGroup {
                         return new SavedState[size];
                     }
                 };
-
-
     }
 }

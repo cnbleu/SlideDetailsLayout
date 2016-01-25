@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <attr name="marker_layout" format="reference"/>
-    <attr name="marker_style" format="reference"/>
-
     <declare-styleable name="SlideDetailsLayout">
-        <attr name="marker_style"/>
-
+        <!-- float value for indicate the moment of switch panel-->
+        <attr name="percent" format="float"/>
+        <!-- how long the animation keep-->
+        <attr name="duration" format="integer"/>
     </declare-styleable>
 
 </resources>
