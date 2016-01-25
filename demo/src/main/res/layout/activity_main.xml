@@ -9,6 +9,7 @@
         android:id="@+id/slidedetails_front"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:cacheColorHint="@android:color/transparent"
         android:background="#0F0"/>
 
     <WebView

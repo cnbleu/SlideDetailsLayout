@@ -4,6 +4,8 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
 import android.content.Context;
+import android.os.Parcel;
+import android.os.Parcelable;
 import android.support.v4.view.MotionEventCompat;
 import android.support.v4.view.ViewCompat;
 import android.util.AttributeSet;
@@ -43,12 +45,21 @@ public class SlideDetailsLayout extends ViewGroup {
         /** Panel is closed */
         CLOSE,
         /** Panel is opened */
-        OPEN
+        OPEN;
+
+        public static Status valueOf(int stats) {
+            if (0 == stats) {
+                return CLOSE;
+            } else if (1 == stats) {
+                return OPEN;
+            } else {
+                return CLOSE;
+            }
+        }
     }
 
     private View mFrontView;
     private View mBehindView;
-//    private View mMarkerView;
 
     private float mTouchSlop;
     private float mInitMotionY;
@@ -90,7 +101,7 @@ public class SlideDetailsLayout extends ViewGroup {
      *
      * @param smooth true, smoothly. false otherwise.
      */
-    public void smoothToOpen(boolean smooth) {
+    public void smoothOpen(boolean smooth) {
         if (mStatus != Status.OPEN) {
             mStatus = Status.OPEN;
             final float height = -getMeasuredHeight();
@@ -103,7 +114,7 @@ public class SlideDetailsLayout extends ViewGroup {
      *
      * @param smooth true, smoothly. false otherwise.
      */
-    public void smoothToClose(boolean smooth) {
+    public void smoothClose(boolean smooth) {
         if (mStatus != Status.CLOSE) {
             mStatus = Status.OPEN;
             final float height = -getMeasuredHeight();
@@ -138,9 +149,6 @@ public class SlideDetailsLayout extends ViewGroup {
         mFrontView = getChildAt(0);
         mBehindView = getChildAt(1);
 
-//        LayoutInflater.from(getContext()).inflate(R.layout.slidedetails_marker_default_layout, this);
-//        mMarkerView = getChildAt(2);
-
         // set behindview's visibility to GONE before show.
         mBehindView.setVisibility(GONE);
     }
@@ -150,18 +158,25 @@ public class SlideDetailsLayout extends ViewGroup {
         final int pWidth = MeasureSpec.getSize(widthMeasureSpec);
         final int pHeight = MeasureSpec.getSize(heightMeasureSpec);
 
-        final int childWidthMeasureSpec = MeasureSpec.makeMeasureSpec(pWidth, MeasureSpec.AT_MOST);
-        int childHeightMeasureSpec = MeasureSpec.makeMeasureSpec(pHeight, MeasureSpec.AT_MOST);
+        final int padLeft = getPaddingLeft();
+        final int padTop = getPaddingTop();
+        final int padRight = getPaddingRight();
+        final int padBottom = getPaddingBottom();
+
+        final int childWidthMeasureSpec =
+                MeasureSpec.makeMeasureSpec(pWidth/* - padLeft - padRight*/, MeasureSpec.EXACTLY);
+        final int childHeightMeasureSpec =
+                MeasureSpec.makeMeasureSpec(pHeight/* - padTop - padBottom*/, MeasureSpec.EXACTLY);
 
         View child;
         for (int i = 0; i < getChildCount(); i++) {
             child = getChildAt(i);
-
             // skip measure
             if (child.getVisibility() == GONE) {
                 continue;
             }
 
+//            child.measure(childWidthMeasureSpec, childHeightMeasureSpec);
             measureChild(child, childWidthMeasureSpec, childHeightMeasureSpec);
         }
 
@@ -430,8 +445,8 @@ public class SlideDetailsLayout extends ViewGroup {
     }
 
     /**
-     * Whether the closed panel is opened first.
-     * By the way, if opened first, we should set the behind view's visibility to VISIBLE.
+     * Whether the closed pannel is opened at first time.
+     * If open first, we should set the behind view's visibility as VISIBLE.
      */
     private void checkAndFirstOpenPanel() {
         if (isFirstShowBehindView) {
@@ -494,5 +509,73 @@ public class SlideDetailsLayout extends ViewGroup {
                        || absListView.getChildAt(count - 1)
                                      .getBottom() > absListView.getMeasuredHeight());
         }
+    }
+
+    @Override
+    protected Parcelable onSaveInstanceState() {
+        SavedState ss = new SavedState(super.onSaveInstanceState());
+        ss.offset = mSlideOffset;
+        ss.status = mStatus.ordinal();
+        return ss;
+    }
+
+    @Override
+    protected void onRestoreInstanceState(Parcelable state) {
+        SavedState ss = (SavedState) state;
+        super.onRestoreInstanceState(ss.getSuperState());
+        mSlideOffset = ss.offset;
+        mStatus = Status.valueOf(ss.status);
+
+        if (mStatus == Status.OPEN) {
+            mBehindView.setVisibility(VISIBLE);
+        }
+
+        requestLayout();
+    }
+
+    static class SavedState extends BaseSavedState {
+
+        private float offset;
+        private int status;
+
+        /**
+         * Constructor used when reading from a parcel. Reads the state of the superclass.
+         *
+         * @param source
+         */
+        public SavedState(Parcel source) {
+            super(source);
+            offset = source.readFloat();
+            status = source.readInt();
+        }
+
+        /**
+         * Constructor called by derived classes when creating their SavedState objects
+         *
+         * @param superState The state of the superclass of this view
+         */
+        public SavedState(Parcelable superState) {
+            super(superState);
+        }
+
+        @Override
+        public void writeToParcel(Parcel out, int flags) {
+            super.writeToParcel(out, flags);
+            out.writeFloat(offset);
+            out.writeInt(status);
+        }
+
+        public static final Parcelable.Creator<SavedState> CREATOR =
+                new Parcelable.Creator<SavedState>() {
+                    public SavedState createFromParcel(Parcel in) {
+                        return new SavedState(in);
+                    }
+
+                    public SavedState[] newArray(int size) {
+                        return new SavedState[size];
+                    }
+                };
+
+
     }
 }
