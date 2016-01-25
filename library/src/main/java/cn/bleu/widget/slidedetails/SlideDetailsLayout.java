@@ -80,6 +80,7 @@ public class SlideDetailsLayout extends ViewGroup {
     private boolean isFirstShowBehindView = true;
     private float mPercent = DEFAULT_PERCENT;
     private long mDuration = DEFAULT_DURATION;
+    private int mDefaultPanel = 0;
 
     private OnSlideDetailsListener mOnSlideDetailsListener;
 
@@ -97,6 +98,7 @@ public class SlideDetailsLayout extends ViewGroup {
         TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.SlideDetailsLayout, defStyleAttr, 0);
         mPercent = a.getFloat(R.styleable.SlideDetailsLayout_percent, DEFAULT_PERCENT);
         mDuration = a.getInt(R.styleable.SlideDetailsLayout_duration, DEFAULT_DURATION);
+        mDefaultPanel = a.getInt(R.styleable.SlideDetailsLayout_default_panel, 0);
         a.recycle();
 
         mTouchSlop = ViewConfiguration.get(getContext()).getScaledTouchSlop();
@@ -137,6 +139,15 @@ public class SlideDetailsLayout extends ViewGroup {
         }
     }
 
+    /**
+     * Set the float value for indicate the moment of switch panel
+     *
+     * @param percent (0.0, 1.0)
+     */
+    public void setPercent(float percent) {
+        this.mPercent = percent;
+    }
+
     @Override
     protected LayoutParams generateDefaultLayoutParams() {
         return new MarginLayoutParams(MarginLayoutParams.WRAP_CONTENT, MarginLayoutParams.WRAP_CONTENT);
@@ -166,6 +177,14 @@ public class SlideDetailsLayout extends ViewGroup {
 
         // set behindview's visibility to GONE before show.
         mBehindView.setVisibility(GONE);
+        if(mDefaultPanel == 1){
+            post(new Runnable() {
+                @Override
+                public void run() {
+                    smoothOpen(false);
+                }
+            });
+        }
     }
 
     @Override
@@ -173,25 +192,19 @@ public class SlideDetailsLayout extends ViewGroup {
         final int pWidth = MeasureSpec.getSize(widthMeasureSpec);
         final int pHeight = MeasureSpec.getSize(heightMeasureSpec);
 
-        final int padLeft = getPaddingLeft();
-        final int padTop = getPaddingTop();
-        final int padRight = getPaddingRight();
-        final int padBottom = getPaddingBottom();
-
         final int childWidthMeasureSpec =
-                MeasureSpec.makeMeasureSpec(pWidth/* - padLeft - padRight*/, MeasureSpec.EXACTLY);
+                MeasureSpec.makeMeasureSpec(pWidth, MeasureSpec.EXACTLY);
         final int childHeightMeasureSpec =
-                MeasureSpec.makeMeasureSpec(pHeight/* - padTop - padBottom*/, MeasureSpec.EXACTLY);
+                MeasureSpec.makeMeasureSpec(pHeight, MeasureSpec.EXACTLY);
 
         View child;
         for (int i = 0; i < getChildCount(); i++) {
             child = getChildAt(i);
-            // skip measure
+            // skip measure if gone
             if (child.getVisibility() == GONE) {
                 continue;
             }
 
-//            child.measure(childWidthMeasureSpec, childHeightMeasureSpec);
             measureChild(child, childWidthMeasureSpec, childHeightMeasureSpec);
         }
 

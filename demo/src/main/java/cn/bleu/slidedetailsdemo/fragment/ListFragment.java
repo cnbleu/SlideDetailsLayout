@@ -49,7 +49,7 @@ public class ListFragment extends BaseFragment {
         footView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                open(false);
+                open(true);
             }
         });
 
