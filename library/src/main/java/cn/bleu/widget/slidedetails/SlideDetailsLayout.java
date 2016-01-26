@@ -16,9 +16,6 @@ import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.widget.AbsListView;
-import android.widget.FrameLayout;
-import android.widget.LinearLayout;
-import android.widget.RelativeLayout;
 
 import static cn.bleu.widget.slidedetails.SlideDebug.DEBUG;
 import static cn.bleu.widget.slidedetails.SlideDebug.TAG;
@@ -505,25 +502,29 @@ public class SlideDetailsLayout extends ViewGroup {
      * @return true if this view can be scrolled in the specified direction, false otherwise.
      */
     protected boolean canChildScrollVertically(int direction) {
-        if (mTarget instanceof AbsListView) {
-            return canListViewSroll((AbsListView) mTarget);
-        } else if (mTarget instanceof FrameLayout ||
-                   mTarget instanceof RelativeLayout ||
-                   mTarget instanceof LinearLayout) {
+        return innerCanChildScrollVertically(mTarget, -direction);
+    }
+
+    private boolean innerCanChildScrollVertically(View view, int direction) {
+        if (view instanceof ViewGroup) {
+            final ViewGroup vGroup = (ViewGroup) view;
             View child;
-            for (int i = 0; i < ((ViewGroup) mTarget).getChildCount(); i++) {
-                child = ((ViewGroup) mTarget).getChildAt(i);
-                if (child instanceof AbsListView) {
-                    return canListViewSroll((AbsListView) child);
+            boolean result;
+            for (int i = 0; i < vGroup.getChildCount(); i++) {
+                child = vGroup.getChildAt(i);
+                if (child instanceof View) {
+                    result = ViewCompat.canScrollVertically(child, direction);
+                } else {
+                    result = innerCanChildScrollVertically(child, direction);
+                }
+
+                if (result) {
+                    return true;
                 }
             }
         }
 
-        if (android.os.Build.VERSION.SDK_INT < 14) {
-            return ViewCompat.canScrollVertically(mTarget, -direction) || mTarget.getScrollY() > 0;
-        } else {
-            return ViewCompat.canScrollVertically(mTarget, -direction);
-        }
+        return ViewCompat.canScrollVertically(view, direction);
     }
 
     protected boolean canListViewSroll(AbsListView absListView) {
