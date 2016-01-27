@@ -11,6 +11,11 @@
 
 先贴代码，见[Github](https://github.com/cnbleu/SlideDetailsLayout)。
 
+##效果图
+
+![](http://7xifbq.com1.z0.glb.clouddn.com/Fp1xaC2l40QBC8OKgHJfPt5qtlLs)
+
+
 ##快速使用
 
 与一般的组件使用方式类似，直接在xml中导入即可，需要注意的是，`SlideDetailsLayout`仅获取子节点中的前两个View，其中第一个作为Front，即概略视图；第二个作为Behind，即图文详情页面。
