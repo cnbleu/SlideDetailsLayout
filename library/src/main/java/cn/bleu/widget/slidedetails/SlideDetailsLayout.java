@@ -12,6 +12,7 @@ import android.support.v4.view.ViewCompat;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
+import android.view.VelocityTracker;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
@@ -62,6 +63,7 @@ public class SlideDetailsLayout extends ViewGroup {
 
     private static final float DEFAULT_PERCENT = 0.2f;
     private static final int DEFAULT_DURATION = 300;
+    private static final float DEFAULT_MAX_VELOCITY = 2500f;
 
     private View mFrontView;
     private View mBehindView;
@@ -78,6 +80,7 @@ public class SlideDetailsLayout extends ViewGroup {
     private float mPercent = DEFAULT_PERCENT;
     private long mDuration = DEFAULT_DURATION;
     private int mDefaultPanel = 0;
+    private VelocityTracker mVelocityTracker;
 
     private OnSlideDetailsListener mOnSlideDetailsListener;
 
@@ -174,7 +177,7 @@ public class SlideDetailsLayout extends ViewGroup {
 
         // set behindview's visibility to GONE before show.
         mBehindView.setVisibility(GONE);
-        if(mDefaultPanel == 1){
+        if (mDefaultPanel == 1) {
             post(new Runnable() {
                 @Override
                 public void run() {
@@ -254,6 +257,13 @@ public class SlideDetailsLayout extends ViewGroup {
         boolean shouldIntercept = false;
         switch (aciton) {
             case MotionEvent.ACTION_DOWN: {
+                if (null == mVelocityTracker) {
+                    mVelocityTracker = VelocityTracker.obtain();
+                } else {
+                    mVelocityTracker.clear();
+                }
+                mVelocityTracker.addMovement(ev);
+
                 mInitMotionX = ev.getX();
                 mInitMotionY = ev.getY();
                 shouldIntercept = false;
@@ -301,6 +311,13 @@ public class SlideDetailsLayout extends ViewGroup {
         return shouldIntercept;
     }
 
+    private void recycleVelocityTracker(){
+        if(null != mVelocityTracker){
+            mVelocityTracker.recycle();
+            mVelocityTracker = null;
+        }
+    }
+
     @Override
     public boolean onTouchEvent(MotionEvent ev) {
         ensureTarget();
@@ -311,6 +328,7 @@ public class SlideDetailsLayout extends ViewGroup {
         if (!isEnabled()) {
             return false;
         }
+
 
         boolean wantTouch = true;
         final int action = MotionEventCompat.getActionMasked(ev);
@@ -325,6 +343,8 @@ public class SlideDetailsLayout extends ViewGroup {
             }
 
             case MotionEvent.ACTION_MOVE: {
+                mVelocityTracker.addMovement(ev);
+                mVelocityTracker.computeCurrentVelocity(1000);
                 final float y = ev.getY();
                 final float yDiff = y - mInitMotionY;
                 if (canChildScrollVertically(((int) yDiff))) {
@@ -339,6 +359,7 @@ public class SlideDetailsLayout extends ViewGroup {
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL: {
                 finishTouchEvent();
+                recycleVelocityTracker();
                 wantTouch = false;
                 break;
             }
@@ -399,14 +420,15 @@ public class SlideDetailsLayout extends ViewGroup {
         final int percent = (int) (pHeight * mPercent);
         final float offset = mSlideOffset;
 
-        if (SlideDebug.DEBUG) {
-            Log.d("slide", "finish, offset: " + offset + ", percent: " + percent);
+        boolean changed = false;
+        final float yVelocity = mVelocityTracker.getYVelocity();
+
+        if (DEBUG) {
+            Log.v(TAG, "finish, offset: " + offset + ", percent: " + percent + ", yVelocity: " + yVelocity);
         }
 
-        boolean changed = false;
-
         if (Status.CLOSE == mStatus) {
-            if (offset <= -percent) {
+            if (offset <= -percent || yVelocity <= -DEFAULT_MAX_VELOCITY) {
                 mSlideOffset = -pHeight;
                 mStatus = Status.OPEN;
                 changed = true;
@@ -415,7 +437,7 @@ public class SlideDetailsLayout extends ViewGroup {
                 mSlideOffset = 0;
             }
         } else if (Status.OPEN == mStatus) {
-            if ((offset + pHeight) >= percent) {
+            if ((offset + pHeight) >= percent || yVelocity >= DEFAULT_MAX_VELOCITY) {
                 mSlideOffset = 0;
                 mStatus = Status.CLOSE;
                 changed = true;
