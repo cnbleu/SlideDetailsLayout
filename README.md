@@ -1,22 +1,22 @@
 >高仿淘宝、京东商品详情页面的上拉加载图文详情功能。使用扩展ViewGroup实现，对事件冲突已经做了处理，可嵌套ListView、WebView等自由使用。
 
-##技术特点
+## 技术特点
 
 1. 完全继承ViewGroup实现的最小功能；
 2. 针对事件冲突、事件消耗进行处理；
 3. 可嵌套ListView、ViewPager、WebView等；
 4. 快速集成。
 
-##代码
+## 代码
 
 先贴代码，见[Github](https://github.com/cnbleu/SlideDetailsLayout)。
 
-##效果图
+## 效果图
 
 ![](http://7xifbq.com1.z0.glb.clouddn.com/Fp1xaC2l40QBC8OKgHJfPt5qtlLs)
 
 
-##快速使用
+## 快速使用
 
 与一般的组件使用方式类似，直接在xml中导入即可，需要注意的是，`SlideDetailsLayout`仅获取子节点中的前两个View，其中第一个作为Front，即概略视图；第二个作为Behind，即图文详情页面。
 
@@ -66,7 +66,7 @@
 
 	如果你嵌套的View与`SlideDetailsLayout`有事件冲突，你可以覆写`canChildScrollVertically(direction)`方法来进行拦截处理。direction为负数时表示向下滑动，反之表示向上滑动。
 
-##实现思路
+## 实现思路
 
 一个最小的功能集应该包含以下三个方面：
 
@@ -74,7 +74,7 @@
 2. 嵌套ListView及WebView时可以正常滑动（图文详情部分假设是通过WebView加载H5页面）；
 3. 允许通过代码调用切换面板及切换事件通知。
 
-###上下滑动
+### 上下滑动
 
 1. 通过`onInterceptTouchEvent`进行事件拦截后，在`onTouchEvent`方法中对触摸信息做进一步处理可以实现竖直方向的滑动；
 
@@ -91,11 +91,11 @@
 
 	标尺，即：offset，相对于top的位移。Front面板展示时，offset为0，Behind面板展示时，offset为`Height`。此后所有的计算都是相对于该标尺。
 
-###事件冲突处理
+### 事件冲突处理
 
 假设父View所在的方向为外，子View所在的方向为内，则：事件的拦截方向为从外向内，事件的消耗方向为从内向外。如果当前View不拦截事件的话，有一定机会可以消耗事件；如果当前View拦截事件的话，则子View原则上不能接受后续事件。我们根据具体的需要来拦截事件或者捡漏掉的事件消耗掉，就能处理事件的冲突了（实际上没有这么简单，以后再进行更详细的描述）。
 
-###面板切换及切换事件通知
+### 面板切换及切换事件通知
 
 刚才说到，滑动的标尺是Front相对于Top的移动，且所有的位移计算都是基于该标尺。那我们在切换面板时只需要知道对应的offset值即可。当然，更改完offset值之后不要忘记调用`requestLayout()`方法。
 
