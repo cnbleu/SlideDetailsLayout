@@ -534,10 +534,10 @@ public class SlideDetailsLayout extends ViewGroup {
             boolean result;
             for (int i = 0; i < vGroup.getChildCount(); i++) {
                 child = vGroup.getChildAt(i);
-                if (child instanceof View) {
-                    result = ViewCompat.canScrollVertically(child, direction);
-                } else {
+                if (child instanceof ViewGroup) {
                     result = innerCanChildScrollVertically(child, direction);
+                } else {
+                    result = ViewCompat.canScrollVertically(child, direction);
                 }
 
                 if (result) {
